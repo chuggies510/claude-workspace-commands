@@ -1,6 +1,6 @@
 ---
 name: stop
-version: v2.0.0
+version: v2.1.0
 allowed-tools: Read, Edit, Write, Grep, Glob, Bash, Task, AskUserQuestion
 description: Universal session handoff - preserves context, extracts knowledge, cleans cruft
 argument-hint: [brief session description]
@@ -65,6 +65,46 @@ echo "Current session: $SESSION_NUMBER"
 ```
 
 Store this SESSION_NUMBER value and reuse it in all subsequent steps.
+
+---
+
+## 0.5 Lightweight Session Detection
+
+Check if this is a no-change session that can skip the full ceremony.
+
+```bash
+# Count tracked file changes (excludes untracked files marked with ??)
+TRACKED_CHANGES=$(git status --porcelain 2>/dev/null | grep -v "^??" | wc -l | tr -d ' ')
+echo "Tracked changes: $TRACKED_CHANGES"
+```
+
+**If TRACKED_CHANGES is 0:**
+
+Use AskUserQuestion:
+- Question: "No code changes detected. Quick close or full handoff?"
+- Options:
+  - "Quick close (skip handoff)" - For exploration, triage, research sessions
+  - "Full /stop workflow" - If you want to write a handoff anyway
+
+**If user chooses "Quick close":**
+
+Output this and STOP (do not continue to Section 1):
+
+```
+═══════════════════════════════════════════════════════════════
+LIGHTWEIGHT SESSION CLOSE
+═══════════════════════════════════════════════════════════════
+
+No code changes to commit.
+Session work captured elsewhere (GitHub, conversation, etc.)
+
+Ready for /clear.
+═══════════════════════════════════════════════════════════════
+```
+
+**If user chooses "Full /stop workflow":** Continue to Section 1.
+
+**If TRACKED_CHANGES > 0:** Skip this prompt, continue to Section 1.
 
 ---
 
