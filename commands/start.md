@@ -1,6 +1,6 @@
 ---
 name: start
-version: v2.1.0
+version: v2.1.1
 allowed-tools: Read, Glob, Grep, Bash
 description: Universal session initialization - detects project type and loads context
 argument-hint: [optional task description]
@@ -58,14 +58,17 @@ Report detected type in output.
 ```bash
 if [ "$(uname -s)" = "Darwin" ]; then
     CURRENT_MACHINE="mac-mini"
+    # Use default route interface (en0 isn't always the active interface on Mac)
+    CURRENT_IP=$(ipconfig getifaddr $(route -n get default 2>/dev/null | grep interface | awk '{print $2}') 2>/dev/null || echo "unknown")
 else
+    CURRENT_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "unknown")
     case "$(hostname)" in
-        DietPi5)  CURRENT_MACHINE="dev-pi" ;;
-        DietPi)   CURRENT_MACHINE="infra-pi" ;;
+        dev-pi)   CURRENT_MACHINE="dev-pi" ;;
+        infra-pi) CURRENT_MACHINE="infra-pi" ;;
         *)        CURRENT_MACHINE="unknown ($(hostname))" ;;
     esac
 fi
-echo "Running on: $CURRENT_MACHINE"
+echo "Running on: $CURRENT_MACHINE ($CURRENT_IP)"
 ```
 
 Include in session header output.
@@ -221,7 +224,7 @@ Format varies by project type.
 ║  [PROJECT NAME] - Session {N+1} Start                          ║
 ╚════════════════════════════════════════════════════════════════╝
 
-Running on: {machine}
+Running on: {machine} ({ip})
 Last Session: {date} (Session {N})
 ```
 
