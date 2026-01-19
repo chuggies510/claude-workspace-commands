@@ -1,6 +1,6 @@
 ---
 name: start
-version: v2.0.0
+version: v2.1.0
 allowed-tools: Read, Glob, Grep, Bash
 description: Universal session initialization - detects project type and loads context
 argument-hint: [optional task description]
@@ -48,6 +48,34 @@ echo "Detected project type: $PROJECT_TYPE"
 ```
 
 Report detected type in output.
+
+---
+
+## 0.5 Detect Current Machine
+
+**Why this matters**: Knowing where Claude is running affects what operations are safe. Don't run stress tests on your own host. Don't SSH to yourself.
+
+```bash
+if [ "$(uname -s)" = "Darwin" ]; then
+    CURRENT_MACHINE="mac-mini"
+else
+    case "$(hostname)" in
+        DietPi5)  CURRENT_MACHINE="dev-pi" ;;
+        DietPi)   CURRENT_MACHINE="infra-pi" ;;
+        *)        CURRENT_MACHINE="unknown ($(hostname))" ;;
+    esac
+fi
+echo "Running on: $CURRENT_MACHINE"
+```
+
+Include in session header output.
+
+**Operational implications**:
+| Running on | Safe operations | Avoid |
+|------------|-----------------|-------|
+| mac-mini | SSH to any Pi, stress tests on Pis | - |
+| dev-pi | SSH to infra-pi, local dev work | Stress tests on self, heavy CPU ops |
+| infra-pi | Read-only checks, emergencies only | Almost everything - this is production |
 
 ---
 
@@ -193,6 +221,7 @@ Format varies by project type.
 ║  [PROJECT NAME] - Session {N+1} Start                          ║
 ╚════════════════════════════════════════════════════════════════╝
 
+Running on: {machine}
 Last Session: {date} (Session {N})
 ```
 
