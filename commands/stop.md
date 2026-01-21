@@ -1,6 +1,6 @@
 ---
 name: stop
-version: v2.1.0
+version: v2.2.0
 allowed-tools: Read, Edit, Write, Grep, Glob, Bash, Task, AskUserQuestion
 description: Universal session handoff - preserves context, extracts knowledge, cleans cruft
 argument-hint: [brief session description]
@@ -26,59 +26,34 @@ Your context resets after this. Write a handoff that sets up the next Claude for
 
 ---
 
-## 0. Detect Project Type and Extract Session Number
-
-**SYNC NOTE**: The project detection logic is duplicated in both /start and /stop commands. Keep them synchronized when updating.
-
-Determine project type from current working directory and file markers.
+## 0. Detect Context and Check Changes
 
 ```bash
-PROJECT_ROOT=$(pwd)
-PROJECT_TYPE="generic"
+# Source shared detection script (exports PROJECT_TYPE, CURRENT_MACHINE, CURRENT_IP, SESSION_NUMBER)
+source ~/2_project-files/_shared/scripts/detect-context.sh || {
+    echo "ERROR: Failed to load detect-context.sh"; exit 1
+}
 
-# 1. Infrastructure: emergency.md exists (chungus-net pattern)
-if [ -f "emergency.md" ]; then
-    PROJECT_TYPE="infrastructure"
-# 2. PCA: PROJECT-CHECKLIST.md + (cards/ OR analysis/ directory)
-elif [ -f "PROJECT-CHECKLIST.md" ] && { [ -d "cards" ] || [ -d "analysis" ]; }; then
-    PROJECT_TYPE="pca"
-# 3. MEAP: dev/ directory + backport-tracker.md
-elif [ -d "dev" ] && [ -f ".claude/memory-bank/backport-tracker.md" ]; then
-    PROJECT_TYPE="meap"
-fi
+# Display context
+echo "PROJECT_TYPE=$PROJECT_TYPE"
+echo "CURRENT_MACHINE=$CURRENT_MACHINE ($CURRENT_IP)"
+echo "SESSION_NUMBER=$SESSION_NUMBER"
 
-echo "Detected project type: $PROJECT_TYPE"
+# Check for tracked file changes
+echo ""
+echo "=== Git Status ==="
+TRACKED_CHANGES=$(git status --porcelain 2>/dev/null | grep -v "^??" | wc -l | tr -d ' ')
+echo "Tracked changes: $TRACKED_CHANGES"
+git status --short 2>/dev/null | head -20
 ```
 
-Report detected type in output.
-
-**Extract session number once** - reuse SESSION_NUMBER throughout this command:
-
-```bash
-# Use awk to reliably find session: line even if YAML has comments or other fields
-SESSION_NUMBER=$(awk '/^session:/ {print $2; exit}' .claude/memory-bank/active-context.md 2>/dev/null)
-# Validate: must be numeric, default to 0 if missing or invalid
-if ! [[ "$SESSION_NUMBER" =~ ^[0-9]+$ ]]; then
-    SESSION_NUMBER=0
-fi
-echo "Current session: $SESSION_NUMBER"
-```
-
-Store this SESSION_NUMBER value and reuse it in all subsequent steps.
+Store PROJECT_TYPE and SESSION_NUMBER values and reuse them in all subsequent steps.
 
 ---
 
 ## 0.5 Lightweight Session Detection
 
-Check if this is a no-change session that can skip the full ceremony.
-
-```bash
-# Count tracked file changes (excludes untracked files marked with ??)
-TRACKED_CHANGES=$(git status --porcelain 2>/dev/null | grep -v "^??" | wc -l | tr -d ' ')
-echo "Tracked changes: $TRACKED_CHANGES"
-```
-
-**If TRACKED_CHANGES is 0:**
+**If TRACKED_CHANGES is 0** (from section 0 output):
 
 Use AskUserQuestion:
 - Question: "No code changes detected. Quick close or full handoff?"
@@ -806,29 +781,7 @@ Open Issues: None
 
 ---
 
-## 12. Confidence Check
-
-Before confirming ready for /clear:
-
-**Self-assessment**: Did I capture everything important?
-- Review tool calls for missed discoveries
-- Review user messages for missed decisions
-- Check if any "aha moments" weren't documented
-
-**User confirmation**: Use AskUserQuestion:
-- Question: "Anything I missed that should be in the Memory Bank?"
-- Options: "Yes, let me add something" / "No, session fully captured"
-
-If user has additions:
-1. Incorporate the additions into appropriate Memory Bank files
-2. Amend the commit:
-```bash
-git add -A
-git commit --amend --no-edit
-git push --force-with-lease
-```
-
-After confirmation, present:
+After the summary, present:
 ```
 Ready for /clear.
 ```

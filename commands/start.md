@@ -1,6 +1,6 @@
 ---
 name: start
-version: v2.1.1
+version: v2.2.0
 allowed-tools: Read, Glob, Grep, Bash
 description: Universal session initialization - detects project type and loads context
 argument-hint: [optional task description]
@@ -21,59 +21,36 @@ Your memory resets between sessions. This command loads project context from the
 
 ---
 
-## 0. Detect Project Type
-
-**SYNC NOTE**: This detection logic is duplicated in both /start and /stop commands. Keep them synchronized when updating.
-
-Determine project type from current working directory and file markers.
-
-**Detection priority** (first match wins):
+## 0. Detect Context
 
 ```bash
-PROJECT_ROOT=$(pwd)
-PROJECT_TYPE="generic"
+# Source shared detection script (exports PROJECT_TYPE, CURRENT_MACHINE, CURRENT_IP, SESSION_NUMBER)
+source ~/2_project-files/_shared/scripts/detect-context.sh || {
+    echo "ERROR: Failed to load detect-context.sh"; exit 1
+}
 
-# 1. Infrastructure: emergency.md exists (chungus-net pattern)
-if [ -f "emergency.md" ]; then
-    PROJECT_TYPE="infrastructure"
-# 2. PCA: PROJECT-CHECKLIST.md + (cards/ OR analysis/ directory)
-elif [ -f "PROJECT-CHECKLIST.md" ] && { [ -d "cards" ] || [ -d "analysis" ]; }; then
-    PROJECT_TYPE="pca"
-# 3. MEAP: dev/ directory + backport-tracker.md
-elif [ -d "dev" ] && [ -f ".claude/memory-bank/backport-tracker.md" ]; then
-    PROJECT_TYPE="meap"
+# Display context
+echo "PROJECT_TYPE=$PROJECT_TYPE"
+echo "CURRENT_MACHINE=$CURRENT_MACHINE ($CURRENT_IP)"
+echo "SESSION_NUMBER=$SESSION_NUMBER"
+
+# Check for external commits since last Memory Bank update
+echo ""
+echo "=== External Changes ==="
+SINCE_DATE=$(git log -1 --format='%ci' -- .claude/memory-bank/ 2>/dev/null)
+if [ -z "$SINCE_DATE" ]; then
+    SINCE_DATE="7 days ago"
+    echo "[FIRST SESSION] No prior Memory Bank commits"
 fi
-
-echo "Detected project type: $PROJECT_TYPE"
-```
-
-Report detected type in output.
-
----
-
-## 0.5 Detect Current Machine
-
-**Why this matters**: Knowing where Claude is running affects what operations are safe. Don't run stress tests on your own host. Don't SSH to yourself.
-
-```bash
-if [ "$(uname -s)" = "Darwin" ]; then
-    CURRENT_MACHINE="mac-mini"
-    # Use default route interface (en0 isn't always the active interface on Mac)
-    CURRENT_IP=$(ipconfig getifaddr $(route -n get default 2>/dev/null | grep interface | awk '{print $2}') 2>/dev/null || echo "unknown")
+EXTERNAL_COMMITS=$(git log --oneline --since="$SINCE_DATE" -- . 2>/dev/null | grep -v "Claude" | head -10)
+if [ -n "$EXTERNAL_COMMITS" ]; then
+    echo "$EXTERNAL_COMMITS"
 else
-    CURRENT_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "unknown")
-    case "$(hostname)" in
-        dev-pi)   CURRENT_MACHINE="dev-pi" ;;
-        infra-pi) CURRENT_MACHINE="infra-pi" ;;
-        *)        CURRENT_MACHINE="unknown ($(hostname))" ;;
-    esac
+    echo "None"
 fi
-echo "Running on: $CURRENT_MACHINE ($CURRENT_IP)"
 ```
 
-Include in session header output.
-
-**Operational implications**:
+**Operational implications** (based on CURRENT_MACHINE):
 | Running on | Safe operations | Avoid |
 |------------|-----------------|-------|
 | mac-mini | SSH to any Pi, stress tests on Pis | - |
@@ -84,35 +61,27 @@ Include in session header output.
 
 ## 1. Load Memory Bank
 
-Read all context files. Skip gracefully if any file is missing.
+Read ALL possible context files speculatively in parallel. Missing files return quickly with no error.
 
-**Universal files** (all project types):
+**Read all of these in a single parallel operation:**
 1. `.claude/memory-bank/README.md` - Content routing guidance
 2. `.claude/memory-bank/project-brief.md` - Mission, constraints, success criteria
 3. `.claude/memory-bank/active-context.md` - Recent handoffs, current work, open issues
 4. `.claude/memory-bank/tech-context.md` - Reference data, paths, commands
 5. `.claude/memory-bank/system-patterns.md` - Architecture, data flows, connections
-6. `CLAUDE.md` - Project-specific gotchas
+6. `.claude/memory-bank/backport-tracker.md` - Client innovation tracking (MEAP only)
+7. `.claude/memory-bank/deployment-log.md` - Deployment history (MEAP only)
+8. `CLAUDE.md` - Project-specific gotchas
 
-**MEAP projects only** (if files exist):
-7. `.claude/memory-bank/backport-tracker.md` - Client innovation tracking
-8. `.claude/memory-bank/deployment-log.md` - Deployment history
+Files that don't exist will return errors - ignore them and use what's available.
 
 ### Parse active-context.md
 
-Extract session metadata:
-- **Session number**: From `session:` YAML frontmatter. Default to 0 if missing/invalid.
+Extract session metadata (SESSION_NUMBER already available from detect-context.sh):
 - **Last handoff date**: From most recent `## CONTEXT HANDOFF - YYYY-MM-DD` header
 - **Current work focus**: From `## Current Work Focus` section
 - **Open issues**: From most recent handoff's `### Open Issues` section
 - **Next session priority**: From most recent handoff's `### Next Session Priority` section
-
-**Validate YAML frontmatter**:
-```bash
-head -5 .claude/memory-bank/active-context.md | grep -n "^---$"
-```
-
-If malformed, warn but continue: `[WARN] active-context.md: YAML frontmatter malformed`
 
 **First session case**: If no handoffs exist, display "First session" and skip handoff-derived fields.
 
@@ -187,33 +156,7 @@ No additional context loading.
 
 ---
 
-## 3. Check External Changes
-
-Check for commits since last Memory Bank update:
-
-```bash
-/usr/bin/env bash << 'BASHSCRIPT'
-SINCE_DATE=$(git log -1 --format='%ci' -- .claude/memory-bank/ 2>/dev/null)
-if [ -z "$SINCE_DATE" ]; then
-    SINCE_DATE="7 days ago"
-    echo "[FIRST SESSION] No prior Memory Bank commits"
-fi
-git log --oneline --since="$SINCE_DATE" -- . 2>/dev/null | grep -v "Claude" | head -10
-BASHSCRIPT
-```
-
-If non-Claude commits found, report:
-```
-[EXTERNAL] N commits since last session:
-- abc1234 Fix typo in config
-- def5678 Update dependencies
-```
-
-Continue normally. User decides if Memory Bank needs updating.
-
----
-
-## 4. Present Summary
+## 3. Present Summary
 
 Format varies by project type.
 
@@ -275,7 +218,7 @@ Context loaded. Ready to execute.
 
 ---
 
-## 5. Task Context (if $ARGUMENTS provided)
+## 4. Task Context (if $ARGUMENTS provided)
 
 Search for task mentions in:
 - active-context.md handoffs
@@ -287,7 +230,7 @@ Present relevant context found, or "No prior context for this task."
 
 ---
 
-## 6. Ready for Work
+## 5. Ready for Work
 
 - If user provided task in $ARGUMENTS → Begin work on that task immediately
 - If no task specified → Prompt: "What should we work on this session?"
