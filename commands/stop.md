@@ -1,6 +1,6 @@
 ---
 name: stop
-version: v2.2.0
+version: v2.3.0
 allowed-tools: Read, Edit, Write, Grep, Glob, Bash, Task, AskUserQuestion
 description: Universal session handoff - preserves context, extracts knowledge, cleans cruft
 argument-hint: [brief session description]
@@ -16,10 +16,8 @@ Your context resets after this. Write a handoff that sets up the next Claude for
 | Constant | Value | Purpose |
 |----------|-------|---------|
 | MAX_GOTCHAS | 10 | Maximum gotchas to keep in CLAUDE.md |
-| HANDOFF_ARCHIVE_THRESHOLD_DEFAULT | 6 | Archive handoffs when count exceeds this |
-| HANDOFF_ARCHIVE_THRESHOLD_PCA | 8 | PCA projects allow more handoffs |
-| HANDOFFS_TO_KEEP_DEFAULT | 3 | How many recent handoffs to preserve |
-| HANDOFFS_TO_KEEP_PCA | 4 | PCA projects keep more context |
+| HANDOFF_ARCHIVE_THRESHOLD | 7 | Archive handoffs when count exceeds this |
+| HANDOFFS_TO_KEEP | 3 | How many recent handoffs to preserve |
 | FILE_SIZE_WARNING_LINES | 400 | Warn if Memory Bank file exceeds this |
 | CRUFT_AGE_DAYS | 30 | Age threshold for old feedback files |
 | PERIODIC_AUDIT_INTERVAL | 5 | Run audit every N sessions |
@@ -533,18 +531,15 @@ if [ -n "$duplicate_sessions" ]; then
 fi
 ```
 
-**Thresholds by project type:**
-- Infrastructure: Archive when 6+, keep 3 most recent
-- MEAP: Archive when 6+, keep 3 most recent
-- PCA: Archive when 8+, keep 4 most recent
-- Generic: Archive when 6+, keep 3 most recent
+**Archive threshold:**
+- When 7+ handoffs exist, archive oldest to keep 3 most recent (applies to all project types)
 
 **Archive process:**
 1. `mkdir -p .claude/memory-bank/archive`
 2. Identify the oldest handoffs (those furthest down in the file, after "Current Work Focus")
 3. Copy them to archive file in chronological order (oldest first)
 4. Remove them from active-context.md
-5. Keep only the configured number of most recent handoffs
+5. Keep only 3 most recent handoffs
 6. Preserve "Current Work Focus" and "Archived Handoffs" sections
 
 **Archive file naming:** `archive/handoffs-YYYY-MM-sessions-N-M.md` (N=first session, M=last session)
