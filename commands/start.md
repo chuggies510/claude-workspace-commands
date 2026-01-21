@@ -139,7 +139,7 @@ Check backport-tracker.md for pending backports:
 
 ```bash
 if [ -f ".claude/memory-bank/backport-tracker.md" ]; then
-    PENDING=$(grep -c "^\- \[ \]" .claude/memory-bank/backport-tracker.md 2>/dev/null || echo 0)
+    PENDING=$(grep "^- \[ \]" .claude/memory-bank/backport-tracker.md 2>/dev/null | wc -l)
     if [ "$PENDING" -gt 0 ]; then
         echo "PENDING BACKPORTS: $PENDING"
     fi
