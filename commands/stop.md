@@ -30,7 +30,7 @@ Your context resets after this. Write a handoff that sets up the next Claude for
 
 ```bash
 # Source shared detection script (exports PROJECT_TYPE, CURRENT_MACHINE, CURRENT_IP, SESSION_NUMBER)
-source ~/2_project-files/_shared/scripts/detect-context.sh || {
+source ~/2_project-files/.claude/scripts/detect-context.sh || {
     echo "ERROR: Failed to load detect-context.sh"; exit 1
 }
 

@@ -25,7 +25,7 @@ Your memory resets between sessions. This command loads project context from the
 
 ```bash
 # Source shared detection script (exports PROJECT_TYPE, CURRENT_MACHINE, CURRENT_IP, SESSION_NUMBER)
-source ~/2_project-files/_shared/scripts/detect-context.sh || {
+source ~/2_project-files/.claude/scripts/detect-context.sh || {
     echo "ERROR: Failed to load detect-context.sh"; exit 1
 }
 
