@@ -19,7 +19,8 @@ Topic hint (optional): $ARGUMENTS
 
 1. Discover the angle through conversation
 2. Write the post in a simple, consistent format
-3. Save to Hugo content directory, build, deploy to blog.chughes.co
+3. Create imagery (hero + section breaks as needed)
+4. Save to Hugo content directory, build, deploy to blog.chughes.co
 
 ---
 
@@ -85,6 +86,7 @@ The goal is writing that sounds like someone telling a story, not generating con
 - Specific details over generic summaries
 - Avoid superlatives and self-congratulation
 - Sound like you're telling a friend, with all the technical details intact
+- **Always include Claude attribution** at the end (see template)
 
 ### Blog Template
 
@@ -97,6 +99,8 @@ date: [YYYY-MM-DD from date command]
 draft: false
 tags: ["tag1", "tag2"]
 ---
+
+![Hero image alt text](/images/{date}-{slug}/hero.svg)
 
 ## [Opening that establishes the problem or situation]
 
@@ -112,6 +116,10 @@ Use headers that describe what's in the section, not generic labels.
 ## [Ending that lands somewhere]
 
 [What's different now. What you'd tell someone else. A reaction, not a summary.]
+
+---
+
+*Written with Claude.*
 ```
 
 **Section headers should be specific to the content:**
@@ -127,6 +135,108 @@ Use headers that describe what's in the section, not generic labels.
 ### Word Count
 
 Target 300-800 words. Longer is fine if the story needs it—don't cut interesting details to hit a number. Shorter is fine if that's all there is to say.
+
+---
+
+## Imagery
+
+Posts should have visual elements that draw readers in and break up the text. This isn't decoration—it's communication.
+
+### When to Add Images
+
+**Always add a hero image** for substantive posts (300+ words). Short technical notes can skip imagery.
+
+**Add section break images** when the post has distinct conceptual phases or a key insight that benefits from visualization.
+
+### Image Types
+
+| Type | Purpose | Placement |
+|------|---------|-----------|
+| Hero | Draw reader into the story, set tone | Immediately after frontmatter, before first heading |
+| Section break | Visualize a key concept or transition | Between major sections |
+| Reference | Ground metaphors, show source material | Near the reference in text |
+| Diagram | Explain technical architecture or flow | Inline where the concept is discussed |
+
+### Check for Existing Assets First
+
+Before creating new images, search for relevant existing diagrams:
+
+```bash
+# Check existing blog images
+ls ~/2_project-files/projects/active-projects/chungus-blog/static/images/
+
+# Search for mermaid diagrams in related docs
+grep -r "```mermaid" ~/2_project-files/projects/active-projects/ --include="*.md" -l
+
+# Search for SVGs in the workspace
+find ~/2_project-files -name "*.svg" -type f 2>/dev/null | head -20
+```
+
+If you find a relevant existing diagram or image, reference it or adapt it rather than creating from scratch.
+
+### Creating New Images
+
+**Style**: Clean, technical, slightly playful. Think institutional documents with a sense of humor. Avoid:
+- Cartoony or clip-art aesthetics
+- Overly complex illustrations
+- Generic stock imagery vibes
+
+**Format**: SVG preferred (scales cleanly, small file size). Use PNG for photos or complex raster images.
+
+**Storage**: Create a directory matching the post slug:
+
+```bash
+IMAGES_DIR=~/2_project-files/projects/active-projects/chungus-blog/static/images
+POST_SLUG="${DATE}-${SLUG}"  # e.g., 2026-01-21-ai-audit
+mkdir -p "${IMAGES_DIR}/${POST_SLUG}"
+```
+
+**Reference in markdown**:
+```markdown
+![Alt text describing the image](/images/2026-01-21-post-slug/hero.svg)
+```
+
+### Hero Image Guidelines
+
+The hero should:
+- Capture the essence of the post in one visual
+- Work at a glance—reader should "get it" without reading
+- Set the emotional tone (frustrated? triumphant? absurd?)
+
+Examples:
+- Post about AI self-assessment → Robot inspector examining a Pi with "APPROVED BY MYSELF" stamp
+- Post about debugging loops → Visual of the loop with armor accumulating
+- Post about migration pain → Before/after showing the mess and the solution
+
+### Section Break Guidelines
+
+Section breaks visualize key concepts. They should:
+- Appear at natural story transitions
+- Reinforce the metaphor or insight
+- Be simpler than the hero (supporting role, not starring)
+
+Don't overdo it—2-4 images total is usually right. More than that and they become noise.
+
+### Quick SVG Patterns
+
+For simple conceptual illustrations, SVGs can be created inline. Common patterns:
+
+**Institutional/certificate style** (good for ironic authority):
+- Cream background (#faf8f5)
+- Serif fonts for headers, monospace for data
+- Red stamp elements (#c41e3a)
+- Clean borders and grid patterns
+
+**Technical diagram style** (good for architecture):
+- Light gray background (#fafafa)
+- Sans-serif labels
+- Color-coded boxes for different components
+- Connecting lines with arrows
+
+**Metaphor visualization** (good for abstract concepts):
+- Simple geometric shapes representing ideas
+- Minimal color palette (2-3 colors)
+- Small text labels anchoring meaning
 
 ---
 
@@ -199,5 +309,8 @@ Report the URL to user with success (200) or failure status.
 Before completing, confirm:
 - Blog post saved to content/posts/ with correct filename
 - Frontmatter has valid date and title
+- Hero image created and referenced (for posts 300+ words)
+- All image files saved to static/images/{post-slug}/
 - Deploy script ran (or user informed of failure)
 - Deployment URL verified or failure reported
+- All images return 200 status when fetched

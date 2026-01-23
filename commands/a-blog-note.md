@@ -88,6 +88,17 @@ PROJECT=$(basename "$(pwd)")
         {"label": "Screenshots/logs", "description": "Visual evidence, log output"}
       ],
       "multiSelect": true
+    },
+    {
+      "question": "What visual would capture this?",
+      "header": "Imagery",
+      "options": [
+        {"label": "Architecture diagram", "description": "Boxes and arrows showing flow or structure"},
+        {"label": "Before/after visual", "description": "Side-by-side comparison of the change"},
+        {"label": "Metaphor illustration", "description": "Robot, certificate, journey—something evocative"},
+        {"label": "Screenshot with annotations", "description": "Real output with callouts"}
+      ],
+      "multiSelect": true
     }
   ]
 }
@@ -142,12 +153,31 @@ After AskUserQuestion, ask in free text: "What's the key 'aha' moment readers sh
 1. **{Angle based on discovery type}**: {Brief description}
 2. **{Alternative angle}**: {Brief description}
 
+## Visual Ideas
+
+**Type**: {Imagery type(s) selected}
+
+**Hero concept**: {One-sentence description of the main image that would draw readers in}
+
+**Supporting visuals**:
+- {Placeholder for additional visual ideas}
+
+**Existing assets to check**:
+```bash
+# Related diagrams in this project
+grep -r "```mermaid" . --include="*.md" -l 2>/dev/null | head -5
+# Existing blog images
+ls ~/2_project-files/projects/active-projects/chungus-blog/static/images/ 2>/dev/null | tail -10
+```
+
 ## TODO
 
 - [ ] Expand key insights with detail
 - [ ] Add raw data and screenshots
+- [ ] Sketch or describe hero image concept
+- [ ] Check for reusable existing diagrams
 - [ ] Choose blog post angle
-- [ ] Draft post (future: /a-blog)
+- [ ] Draft post with imagery: /a-blog
 ```
 
 ### Step 6: Report Success
@@ -160,7 +190,8 @@ Created: {FILE_PATH}
 Next steps:
 1. Fill in the key insights while they're fresh
 2. Paste any raw data or screenshots
-3. When ready to publish: use /a-blog (planned, not yet implemented)
+3. Jot down the hero image idea before you forget
+4. When ready to publish: /a-blog (will create imagery automatically)
 ```
 
 ## Notes
