@@ -652,6 +652,61 @@ fi
 
 **Critical**: If commit OR push fails, STOP. Do not proceed to Summary until both succeed.
 
+### Workspace Commands Repo
+
+Check if workspace-level files were modified during this session (commands, skills, agents):
+
+```bash
+WORKSPACE_CLAUDE_DIR=~/2_project-files/.claude
+
+if [ -d "$WORKSPACE_CLAUDE_DIR/.git" ]; then
+    echo "=== Workspace Commands Repo ==="
+    cd "$WORKSPACE_CLAUDE_DIR"
+
+    WORKSPACE_CHANGES=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')
+
+    if [ "$WORKSPACE_CHANGES" -gt 0 ]; then
+        echo "Found $WORKSPACE_CHANGES changed file(s) in workspace commands:"
+        git status --short
+    else
+        echo "No changes in workspace commands"
+    fi
+
+    cd - > /dev/null
+fi
+```
+
+**If workspace changes detected**, commit them:
+
+1. Review what changed (commands, skills, agents, hooks)
+2. Stage and commit with descriptive message
+3. Push to remote
+
+```bash
+cd "$WORKSPACE_CLAUDE_DIR"
+
+# Stage all changes
+git add -A
+
+# Commit with session context
+git commit -m "$(cat <<EOF
+feat(commands): [Brief description of what changed]
+
+Session work from [project name]:
+- [List key changes to commands/skills/agents]
+
+Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
+EOF
+)"
+
+# Push
+git push
+
+cd - > /dev/null
+```
+
+Include workspace commit in the session summary.
+
 ---
 
 ## 11. Summary
@@ -683,7 +738,8 @@ WHERE:
 PRESERVED FOR NEXT SESSION:
   • Memory Bank: Session 93 handoff written to active-context.md
   • Knowledge extracted to: workspace CLAUDE.md (+1 pattern)
-  • Commit: abc1234
+  • Project commit: abc1234
+  • Workspace commit: def5678 (if workspace commands were modified)
 
 WHAT'S NEXT:
 Test universal commands across all three project types (chungus-net, meap2-it, 101-cal)
@@ -741,7 +797,8 @@ Archived:
 GIT STATUS
 ───────────────────────────────────────────────────────────────
 
-Commit: f95eda4 docs: Session 45 - Electrical analysis complete
+Project commit: f95eda4 docs: Session 45 - Electrical analysis complete
+Workspace commit: (none, or commit hash if commands modified)
 Pushed: Yes
 Branch: master
 
