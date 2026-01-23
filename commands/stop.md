@@ -1,6 +1,6 @@
 ---
 name: stop
-version: v2.3.0
+version: v2.4.0
 allowed-tools: Read, Edit, Write, Grep, Glob, Bash, Task, AskUserQuestion
 description: Universal session handoff - preserves context, extracts knowledge, cleans cruft
 argument-hint: [brief session description]
@@ -279,6 +279,40 @@ Goal: Keep gotchas ≤10 entries. Only traps that future Claude will actually en
 ## 5. Cruft Scanning
 
 Detect stale files that confuse people.
+
+### Ralph Session Check
+
+Check for incomplete ralph development sessions:
+
+```bash
+echo "=== Ralph Session Check ==="
+if [ -d "dev/ralph/active" ]; then
+    STATUS=$(grep "^## Status:" dev/ralph/active/IMPLEMENTATION_PLAN.md 2>/dev/null | head -1 | cut -d: -f2 | xargs)
+    PENDING=$(grep -c "\\*\\*Status\\*\\*: pending" dev/ralph/active/IMPLEMENTATION_PLAN.md 2>/dev/null || echo 0)
+    BLOCKED=$(grep -c "\\*\\*Status\\*\\*: blocked" dev/ralph/active/IMPLEMENTATION_PLAN.md 2>/dev/null || echo 0)
+    FEATURE=$(grep "^- Feature:" dev/ralph/active/IMPLEMENTATION_PLAN.md 2>/dev/null | head -1 | cut -d: -f2 | xargs)
+    echo "Feature: $FEATURE"
+    echo "Status: $STATUS"
+    echo "Pending: $PENDING, Blocked: $BLOCKED"
+else
+    echo "None"
+fi
+```
+
+**If ralph session is incomplete** (only warn if actually incomplete):
+
+- If `STATUS = "planning"` AND `PENDING > 0`: Ralph planning incomplete
+- If `PENDING > 0` OR `BLOCKED > 0`: Ralph build incomplete
+- Otherwise (review or complete status): No warning needed
+
+Use AskUserQuestion if warning triggered:
+- Question: "Active ralph session incomplete ({PENDING} pending tasks). What should happen?"
+- Options:
+  - "Continue later (no action)"
+  - "Abandon now (/ralph abandon)"
+  - "Review now (/ralph review)"
+
+Execute corresponding action and note in session summary.
 
 ### Universal Bash Scans (all project types)
 

@@ -1,6 +1,6 @@
 ---
 name: start
-version: v2.2.0
+version: v2.3.0
 allowed-tools: Read, Glob, Grep, Bash
 description: Universal session initialization - detects project type and loads context
 argument-hint: [optional task description]
@@ -56,6 +56,41 @@ fi
 | mac-mini | SSH to any Pi, stress tests on Pis | - |
 | dev-pi | SSH to infra-pi, local dev work | Stress tests on self, heavy CPU ops |
 | infra-pi | Read-only checks, emergencies only | Almost everything - this is production |
+
+---
+
+## 0.5 Ralph Session Check
+
+Check for active ralph development sessions:
+
+```bash
+echo "=== Ralph Session ==="
+if [ -d "dev/ralph/active" ]; then
+    # Check file exists (Fix #2)
+    if [ ! -f "dev/ralph/active/IMPLEMENTATION_PLAN.md" ]; then
+        echo "ERROR: Directory exists but IMPLEMENTATION_PLAN.md missing"
+    else
+        PENDING=$(grep -c "\\*\\*Status\\*\\*: pending" dev/ralph/active/IMPLEMENTATION_PLAN.md 2>/dev/null || echo 0)
+        COMPLETE=$(grep -c "\\*\\*Status\\*\\*: complete" dev/ralph/active/IMPLEMENTATION_PLAN.md 2>/dev/null || echo 0)
+        BLOCKED=$(grep -c "\\*\\*Status\\*\\*: blocked" dev/ralph/active/IMPLEMENTATION_PLAN.md 2>/dev/null || echo 0)
+        FEATURE=$(grep "^- Feature:" dev/ralph/active/IMPLEMENTATION_PLAN.md 2>/dev/null | head -1 | cut -d: -f2 | xargs)
+        echo "Feature: $FEATURE"
+        echo "Tasks: $COMPLETE complete, $PENDING pending, $BLOCKED blocked"
+    fi
+else
+    echo "None"
+fi
+```
+
+### Ralph Session in Header
+
+If active ralph session found, include in session summary header:
+
+```
+[RALPH] Active: {FEATURE}
+        Tasks: {COMPLETE} done, {PENDING} pending
+        Commands: /ralph build | /ralph review | /ralph abandon
+```
 
 ---
 
