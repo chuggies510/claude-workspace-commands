@@ -1,9 +1,9 @@
 ---
 name: a-memory-audit
-version: v2.0.0
+version: v2.1.0
 allowed-tools: Read, Glob, Grep, Bash, Edit, Write, AskUserQuestion
-description: Universal Memory Bank audit - detects project type, checks structure, content, staleness, consistency
-argument-hint: "[structure|content|staleness|consistency|all|fix]"
+description: Universal Memory Bank audit - detects project type, checks structure, content, staleness, consistency, token efficiency
+argument-hint: "[structure|content|staleness|consistency|efficiency|all|fix]"
 thinking: true
 ---
 
@@ -17,6 +17,7 @@ Universal command for auditing Memory Bank files across project types.
 | `content` | Phase B only |
 | `staleness` | Phase C only |
 | `consistency` | Phase D only |
+| `efficiency` | Phase E only |
 | `all` / empty | All phases |
 | `fix` | All phases + apply fixes |
 
@@ -369,6 +370,288 @@ done
 
 ---
 
+## Phase E: Token Efficiency
+
+Identify content that's accurate but not needed every session. Apply tiered extraction using REQUIRED pointer pattern.
+
+**Evidence**: Session 196 (MEAP) achieved 53% reduction; Session 159 (chungus-net) achieved 41% reduction.
+
+### E1. Baseline Measurement
+
+```bash
+echo "=== Token Efficiency Baseline ==="
+
+# Count all levels
+global_lines=$(wc -l < ~/.claude/CLAUDE.md 2>/dev/null || echo 0)
+workspace_lines=$(wc -l < ~/2_project-files/CLAUDE.md 2>/dev/null || echo 0)
+project_lines=$(wc -l < CLAUDE.md 2>/dev/null || echo 0)
+mb_total=$(wc -l .claude/memory-bank/*.md 2>/dev/null | tail -1 | awk '{print $1}')
+
+echo "Global CLAUDE.md: $global_lines lines"
+echo "Workspace CLAUDE.md: $workspace_lines lines"
+echo "Project CLAUDE.md: $project_lines lines"
+echo "Memory Bank total: $mb_total lines"
+
+# Flag bloated files
+echo ""
+echo "=== Bloat Detection ==="
+for f in .claude/memory-bank/*.md; do
+  lines=$(wc -l < "$f" 2>/dev/null || echo 0)
+  if [ "$lines" -gt 400 ]; then
+    echo "BLOATED: $f ($lines lines, threshold 400)"
+  fi
+done
+
+if [ "$project_lines" -gt 200 ]; then
+  echo "BLOATED: CLAUDE.md ($project_lines lines, threshold 200)"
+fi
+if [ "$workspace_lines" -gt 200 ]; then
+  echo "BLOATED: workspace CLAUDE.md ($workspace_lines lines, threshold 200)"
+fi
+```
+
+### E2. Section Classification (Memory Bank)
+
+For each `## ` section in tech-context.md and system-patterns.md, classify:
+
+| Classification | Criteria | Action |
+|----------------|----------|--------|
+| KEEP_INLINE | Version tables (<10 rows), IPs, ports, SSH, URLs, paths, "essential", "current" | Keep in Memory Bank |
+| EXTRACT | Procedures, configs, examples, sections >40 lines, "when working with" | Move to docs/reference/ |
+| REMOVE | "session \d+", "historical", "superseded", "deprecated" | Delete |
+
+```bash
+echo "=== Memory Bank Section Analysis ==="
+
+# Analyze tech-context.md sections
+echo "tech-context.md sections:"
+awk '/^## / {
+  if (section) print section, lines, "lines"
+  section = $0
+  lines = 0
+  next
+}
+{lines++}
+END {if (section) print section, lines, "lines"}
+' .claude/memory-bank/tech-context.md 2>/dev/null
+
+echo ""
+echo "system-patterns.md sections:"
+awk '/^## / {
+  if (section) print section, lines, "lines"
+  section = $0
+  lines = 0
+  next
+}
+{lines++}
+END {if (section) print section, lines, "lines"}
+' .claude/memory-bank/system-patterns.md 2>/dev/null
+```
+
+**Classification keywords**:
+- KEEP: version, IP, port, ssh, url, path, current, essential, core, quick
+- EXTRACT: procedure, detailed, config, example, methodology, workflow, pattern, when working
+- REMOVE: historical, superseded, deprecated, "Session \d+", obsolete
+
+### E3. Section Classification (CLAUDE.md)
+
+Apply same tiered treatment to CLAUDE.md at all 3 levels.
+
+| Section Type | Default Classification | Rationale |
+|--------------|------------------------|-----------|
+| Build commands | KEEP | Every session |
+| True gotchas (trap keywords) | KEEP | Error prevention |
+| Troubleshooting tables | KEEP | Quick reference |
+| Workflow patterns | EXTRACT | Topic-specific |
+| Plugin/tool docs | EXTRACT | Only when using tool |
+| Methodology sections | EXTRACT | Not operational |
+| Historical context | REMOVE | Not actionable |
+
+**Extraction destinations by level**:
+- Project CLAUDE.md → `docs/reference/claudemd-reference.md` (or `[project-type]-gotchas-reference.md`)
+- Workspace CLAUDE.md → `~/2_project-files/docs/reference/workspace-reference.md`
+- Global CLAUDE.md → Skip (typically <50 lines)
+
+```bash
+echo "=== CLAUDE.md Section Analysis ==="
+
+# Project CLAUDE.md sections
+echo "Project CLAUDE.md sections:"
+awk '/^## / {
+  if (section) print section, lines, "lines"
+  section = $0
+  lines = 0
+  next
+}
+{lines++}
+END {if (section) print section, lines, "lines"}
+' CLAUDE.md 2>/dev/null
+
+# Count gotcha subsections
+gotcha_count=$(grep -c "^### " CLAUDE.md 2>/dev/null || echo 0)
+echo "Gotcha subsections: $gotcha_count"
+
+# Check for trap keywords vs doc keywords
+trap_keywords=$(grep -ciE 'fails|breaks|hangs|crashes|silent|wrong|gotcha|trap|error|bug|must not|never' CLAUDE.md 2>/dev/null || echo 0)
+doc_keywords=$(grep -ciE 'overview|workflow|methodology|pattern|example|reference|how to' CLAUDE.md 2>/dev/null || echo 0)
+echo "Trap keywords: $trap_keywords, Doc keywords: $doc_keywords"
+```
+
+### E4. REQUIRED Pointer Inventory
+
+Count existing REQUIRED pointers and validate targets.
+
+```bash
+echo "=== REQUIRED Pointer Inventory ==="
+
+# Count pointers in Memory Bank
+echo "REQUIRED pointers by file:"
+for f in .claude/memory-bank/*.md; do
+  count=$(grep -c "REQUIRED.*read" "$f" 2>/dev/null || echo 0)
+  if [ "$count" -gt 0 ]; then
+    echo "  $(basename "$f"): $count"
+  fi
+done
+
+# Count in CLAUDE.md
+claude_pointers=$(grep -c "REQUIRED.*read" CLAUDE.md 2>/dev/null || echo 0)
+echo "  CLAUDE.md: $claude_pointers"
+
+# Validate pointer targets exist
+echo ""
+echo "=== Pointer Target Validation ==="
+grep -ohE "read \`[^\`]+\`" .claude/memory-bank/*.md CLAUDE.md 2>/dev/null | \
+  sed "s/read \`//g; s/\`//g; s/#.*//g" | sort -u | while read -r path; do
+    # Handle relative paths
+    if [ -f "$path" ]; then
+      echo "OK: $path"
+    elif [ -f "./$path" ]; then
+      echo "OK: $path"
+    else
+      echo "BROKEN: $path"
+    fi
+done
+```
+
+### E5. Extraction Summary
+
+Calculate potential reduction and present findings.
+
+```bash
+echo "=== Extraction Summary ==="
+
+# Calculate totals
+total_lines=$((project_lines + mb_total))
+echo "Current total: $total_lines lines (CLAUDE.md + Memory Bank)"
+
+# Count sections >40 lines as extraction candidates
+candidates=$(awk '/^## / {
+  if (section && lines > 40) count++
+  section = $0
+  lines = 0
+  next
+}
+{lines++}
+END {if (section && lines > 40) count++; print count+0}
+' .claude/memory-bank/tech-context.md .claude/memory-bank/system-patterns.md CLAUDE.md 2>/dev/null)
+
+echo "Extraction candidates (sections >40 lines): $candidates"
+```
+
+**Output table format**:
+
+| Source | Section | Lines | Classification | Reason |
+|--------|---------|-------|----------------|--------|
+| tech-context.md | ## BiMO Successor | 45 | EXTRACT | Topic-specific |
+| system-patterns.md | ## Deployment Patterns | 52 | EXTRACT | Detailed procedure |
+| CLAUDE.md | ## Workflow Patterns | 38 | EXTRACT | Methodology |
+
+Present findings and potential reduction percentage.
+
+### E6. Interview (Fix Mode)
+
+When `$ARGUMENTS` contains `fix` or `efficiency`, interview user for extraction scope.
+
+**Question 1: Extraction Scope**
+
+Use AskUserQuestion:
+```
+Token Efficiency Analysis found:
+- Memory Bank: [X] lines across [N] files
+- CLAUDE.md: [Y] lines at project level
+- [M] sections identified for potential extraction
+- Potential reduction: [P]%
+
+Select extraction scope:
+```
+Options:
+- `SKIP` - Analysis only, no changes
+- `SURGICAL` - Extract only sections >50 lines with clear topic boundaries
+- `MODERATE` - Extract all topic-specific content, keep core references
+- `AGGRESSIVE` - Maximum extraction, keep only version tables and critical paths
+
+**Question 2: CLAUDE.md Treatment**
+
+Use AskUserQuestion:
+```
+Project CLAUDE.md has [N] sections ([M] lines total).
+
+Current breakdown:
+- [X] true gotchas (keep for error prevention)
+- [Y] workflow/methodology sections (could extract)
+- [Z] historical/deprecated content (could remove)
+
+Apply tiered treatment to CLAUDE.md?
+```
+Options:
+- `YES` - Full tiered treatment (extract workflows, remove historical)
+- `PARTIAL` - Extract only, keep historical for reference
+- `NO` - CLAUDE.md stays as-is
+
+### E7. Execute Extraction (Fix Mode)
+
+When user approves extraction scope:
+
+**Step 1: Create reference doc structure**
+
+```bash
+mkdir -p docs/reference
+
+# Determine reference doc name by project type
+case $PROJECT_TYPE in
+  pca) ref_file="docs/reference/pca-reference.md" ;;
+  meap) ref_file="docs/reference/meap-reference.md" ;;
+  infrastructure) ref_file="docs/reference/infra-reference.md" ;;
+  *) ref_file="docs/reference/project-reference.md" ;;
+esac
+```
+
+**Step 2: For each EXTRACT section**
+
+1. Read section content from source file
+2. Append to reference doc with anchor heading (`## Section Name`)
+3. Replace source section with REQUIRED pointer stub:
+
+```markdown
+## [Topic]
+
+**REQUIRED**: When working with [topic] (discussing, planning, or executing), read `docs/reference/[file].md#[anchor]` first.
+
+Quick reference:
+- [1-2 line essential fact from original section]
+```
+
+**Step 3: For each REMOVE section**
+
+1. Verify no active references exist
+2. Delete section from source file
+
+**Step 4: Update state file**
+
+Record extraction in `.memory-audit-state.json` efficiency object.
+
+---
+
 ## Output
 
 ### Report Format
@@ -384,6 +667,7 @@ done
 | B: Content | M misclassified | Y |
 | C: Staleness | P stale | Z |
 | D: Consistency | Q mismatches | - |
+| E: Efficiency | R extractable | W |
 | **Total** | **T** | **L** |
 
 ## Phase A: Structure
@@ -397,6 +681,27 @@ done
 
 ## Phase D: Consistency
 [findings]
+
+## Phase E: Token Efficiency
+
+**Baseline**:
+| Source | Lines | Status |
+|--------|-------|--------|
+| tech-context.md | N | OK/BLOATED |
+| system-patterns.md | N | OK/BLOATED |
+| project CLAUDE.md | N | OK/BLOATED |
+| Memory Bank total | N | OK/BLOATED |
+
+**Classification Summary**:
+| Classification | Sections | Lines |
+|----------------|----------|-------|
+| KEEP_INLINE | N | X |
+| EXTRACT | N | Y |
+| REMOVE | N | Z |
+
+**REQUIRED Pointers**: N existing, M targets validated
+**Extraction Candidates**: [table of sections with >40 lines]
+**Potential Reduction**: N lines (X%)
 
 ---
 *State saved to .memory-audit-state.json*
@@ -422,9 +727,36 @@ Save to `.memory-audit-state.json` in project root:
     "structure": N,
     "content": N,
     "staleness": N,
-    "consistency": N
+    "consistency": N,
+    "efficiency": N
   },
-  "potential_reduction": L
+  "potential_reduction": L,
+  "efficiency": {
+    "last_run": "YYYY-MM-DD",
+    "baseline": {
+      "memory_bank_lines": N,
+      "claudemd_lines": {
+        "global": N,
+        "workspace": N,
+        "project": N
+      }
+    },
+    "extractions": [
+      {
+        "source": "file.md",
+        "section": "## Section Name",
+        "destination": "docs/reference/file.md#anchor",
+        "lines": N,
+        "date": "YYYY-MM-DD"
+      }
+    ],
+    "required_pointers": {
+      "tech-context.md": N,
+      "system-patterns.md": N,
+      "CLAUDE.md": N
+    },
+    "reduction_achieved": N
+  }
 }
 ```
 
@@ -456,6 +788,8 @@ When `$ARGUMENTS` contains `fix`:
 - Remove duplicate sections → Edit to delete
 - Move misrouted content → Edit source (remove) + Edit target (add)
 - Update broken paths → Edit with correct path
+- Extract sections (Phase E) → Create reference doc, add REQUIRED pointer, remove original
+- Remove obsolete sections (Phase E) → Delete after verifying no references
 
 **Safety**:
 - Never delete without confirmation
