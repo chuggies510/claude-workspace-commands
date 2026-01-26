@@ -117,30 +117,40 @@ Review what happened this session:
 
 Before presenting candidates, check if detailed content should route to tier 2 reference files.
 
-**Tier 2 routing applies when:**
-1. Target is `tech-context.md` or `system-patterns.md`
-2. Target file has a `**REQUIRED**:` pointer for the topic
-3. Extraction is detailed (>3 lines or contains code/tables)
+**Tier 2 routing applies when ANY of these are true:**
+1. Extraction contains code blocks (```)
+2. Extraction contains YAML/JSON configuration
+3. Extraction is >15 lines
+4. Extraction is "how to do X" (procedure) rather than "what X is" (context)
+
+**Content shape determines destination:**
+| Content shape | Destination | Memory Bank gets |
+|---------------|-------------|------------------|
+| Code blocks, configs, procedures | Tier 2 reference doc | REQUIRED pointer + 1-line summary |
+| Brief facts (<15 lines, no code) | Memory Bank directly | Full content |
+| Architecture diagrams (ASCII) | system-patterns.md | Full content (visual context) |
 
 **Routing logic:**
-- Find REQUIRED pointers in target file that match extraction topic
-- If match found: route detailed content to the referenced `docs/reference/*.md` file
-- Memory Bank gets only brief summary or nothing (pointer is sufficient)
-- Anchors map to headers: `#deployment` → `## Deployment` (lowercase-hyphenated → Title Case)
+1. Check if `docs/reference/` exists in project
+   - If not: route everything to Memory Bank
+2. Check if extraction topic matches existing tier 2 section
+   - Grep for related headers in `docs/reference/*.md`
+   - If match: append to that section
+3. If no existing section but content is detailed:
+   - Find most appropriate reference file (tech-reference, pattern-reference, infra-reference)
+   - Create new section with `## Topic Name` header
+   - Add REQUIRED pointer to Memory Bank
 
-**Topic matching (keyword-based):**
-| Extraction keywords | Routes to |
-|--------------------|-----------------------------|
-| deploy, deployment | `docs/reference/tech-reference.md#deployment` |
-| BiMO, bimo | `docs/reference/tech-reference.md#bimo-successor` |
-| cost, pricing, RS Means | `docs/reference/tech-reference.md#cost-database` |
-| MCP, vector, embedding | `docs/reference/tech-reference.md#mcp-vector-search` |
-| test bed, _test | `docs/reference/tech-reference.md#test-bed` |
-| version, semver | `docs/reference/pattern-reference.md#version-control-pattern` |
-| agent, subagent | `docs/reference/pattern-reference.md#agent-development-patterns` |
-| wordbank, template | `docs/reference/pattern-reference.md#wordbank-architecture` |
+**Memory Bank pointer format:**
+```markdown
+## Topic Name
 
-If no keyword match or `docs/reference/` doesn't exist: route to Memory Bank as normal.
+**REQUIRED**: When working with [topic], read `docs/reference/[file].md#[anchor]` first.
+
+Quick reference: [1-line summary of what's there]
+```
+
+**Anchors map to headers**: `#deployment` → `## Deployment` (lowercase-hyphenated → Title Case)
 
 ### Pre-Filter Duplicates
 
