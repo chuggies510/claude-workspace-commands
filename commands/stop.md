@@ -1,6 +1,6 @@
 ---
 name: stop
-version: v2.4.0
+version: v2.5.0
 allowed-tools: Read, Edit, Write, Grep, Glob, Bash, Task, AskUserQuestion
 description: Universal session handoff - preserves context, extracts knowledge, cleans cruft
 argument-hint: [brief session description]
@@ -112,6 +112,35 @@ Review what happened this session:
 | **CLAUDE.md § Gotchas** | "Tried X, failed because Y, fix was Z" patterns |
 | **backport-tracker.md** (MEAP only) | Client innovations discovered during work |
 | **Workspace CLAUDE.md** (`~/2_project-files/CLAUDE.md`) | Universal patterns for ALL projects |
+
+### Tiered Routing Check
+
+Before presenting candidates, check if detailed content should route to tier 2 reference files.
+
+**Tier 2 routing applies when:**
+1. Target is `tech-context.md` or `system-patterns.md`
+2. Target file has a `**REQUIRED**:` pointer for the topic
+3. Extraction is detailed (>3 lines or contains code/tables)
+
+**Routing logic:**
+- Find REQUIRED pointers in target file that match extraction topic
+- If match found: route detailed content to the referenced `docs/reference/*.md` file
+- Memory Bank gets only brief summary or nothing (pointer is sufficient)
+- Anchors map to headers: `#deployment` → `## Deployment` (lowercase-hyphenated → Title Case)
+
+**Topic matching (keyword-based):**
+| Extraction keywords | Routes to |
+|--------------------|-----------------------------|
+| deploy, deployment | `docs/reference/tech-reference.md#deployment` |
+| BiMO, bimo | `docs/reference/tech-reference.md#bimo-successor` |
+| cost, pricing, RS Means | `docs/reference/tech-reference.md#cost-database` |
+| MCP, vector, embedding | `docs/reference/tech-reference.md#mcp-vector-search` |
+| test bed, _test | `docs/reference/tech-reference.md#test-bed` |
+| version, semver | `docs/reference/pattern-reference.md#version-control-pattern` |
+| agent, subagent | `docs/reference/pattern-reference.md#agent-development-patterns` |
+| wordbank, template | `docs/reference/pattern-reference.md#wordbank-architecture` |
+
+If no keyword match or `docs/reference/` doesn't exist: route to Memory Bank as normal.
 
 ### Pre-Filter Duplicates
 
@@ -244,6 +273,32 @@ For each approved extraction:
 4. Verify the edit was applied correctly
 
 If no extractions approved, skip to Step 4.
+
+### Tier 2 File Updates
+
+For extractions routed to tier 2 files (from Tiered Routing Check):
+
+1. Check if `docs/reference/` directory exists
+   - If not: create it with `mkdir -p docs/reference`
+2. Check if target file exists (e.g., `docs/reference/tech-reference.md`)
+   - If not: create with minimal header:
+   ```markdown
+   # [Tech/Pattern] Reference
+
+   Reference material. Not loaded on `/start` - read when working on specific topics.
+
+   **Navigation:** Use anchor links from Memory Bank pointers.
+
+   ---
+   ```
+3. Find the target section by anchor (e.g., `## Deployment`)
+   - If section exists: append content to that section
+   - If section missing: create new section at end of file with proper `## Section Name` header
+4. Verify edit applied correctly
+
+**Note:** Tier 2 routing only applies to projects that already have the tiered architecture (REQUIRED pointers in Memory Bank). For projects without `docs/reference/`, route to Memory Bank as normal.
+
+**Important:** When content routes to tier 2, do NOT also add detailed content to Memory Bank. The REQUIRED pointer already serves as the reference. Only add a brief note to Memory Bank if something changed (e.g., "Updated deployment patterns in tech-reference.md").
 
 ### Other Memory Bank Updates
 
