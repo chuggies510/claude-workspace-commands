@@ -240,6 +240,37 @@ For simple conceptual illustrations, SVGs can be created inline. Common patterns
 
 ---
 
+## Pre-Publish Checks
+
+### Confidentiality Review
+
+Before finalizing, scan the post for client identifiers:
+- Project codes (e.g., "101-cal", "fourth-street")
+- Building names and addresses
+- Company names (unless public/approved)
+- MOID numbers or other internal references
+
+If found, ask user: "I found potential client identifiers: [list]. Should I anonymize these before publishing?"
+
+### Tone Review
+
+Check for AI-speak patterns that undermine the human voice:
+- Dramatic/punchy openers that feel manufactured
+- Marketing-speak ("revolutionary", "game-changing", "seamlessly")
+- Superlatives without evidence ("extremely", "incredibly", "amazingly")
+- Self-congratulation ("I successfully", "I was able to")
+
+If patterns found, revise before proceeding.
+
+### Mermaid/Diagram Verification
+
+If post contains code blocks with `mermaid`, `flowchart`, `graph`, `sequenceDiagram`, or `stateDiagram`:
+1. Verify Hugo's Mermaid.js is configured (check `config.toml` or existing posts)
+2. Test render locally if possible
+3. Note to user: "Post contains Mermaid diagrams - verify they render after deploy"
+
+---
+
 ## Save and Deploy
 
 ### File Location
@@ -268,9 +299,20 @@ done
 # Use $FILEPATH for saving
 ```
 
+### Git Commit
+
+Before deploying, commit the new post and any images:
+
+```bash
+cd ~/2_project-files/projects/active-projects/chungus-blog
+git add content/posts/${FILENAME}
+git add static/images/${POST_SLUG}/ 2>/dev/null || true  # Images dir may not exist
+git commit -m "Add post: ${TITLE}"
+```
+
 ### Deployment
 
-After saving the file, deploy to production:
+After committing, deploy to production:
 
 ```bash
 cd ~/2_project-files/projects/active-projects/chungus-blog && ./deploy.sh
@@ -309,8 +351,12 @@ Report the URL to user with success (200) or failure status.
 Before completing, confirm:
 - Blog post saved to content/posts/ with correct filename
 - Frontmatter has valid date and title
+- Confidentiality review passed (no client identifiers)
+- Tone review passed (no AI-speak patterns)
 - Hero image created and referenced (for posts 300+ words)
 - All image files saved to static/images/{post-slug}/
+- Mermaid diagrams noted if present
+- Git commit created with post and images
 - Deploy script ran (or user informed of failure)
 - Deployment URL verified or failure reported
 - All images return 200 status when fetched
