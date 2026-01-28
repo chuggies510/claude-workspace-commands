@@ -99,14 +99,13 @@ If active ralph session found, include in session summary header:
 Read ALL possible context files speculatively in parallel. Missing files return quickly with no error.
 
 **Read all of these in a single parallel operation:**
-1. `.claude/memory-bank/README.md` - Content routing guidance
-2. `.claude/memory-bank/project-brief.md` - Mission, constraints, success criteria
-3. `.claude/memory-bank/active-context.md` - Recent handoffs, current work, open issues
-4. `.claude/memory-bank/tech-context.md` - Reference data, paths, commands
-5. `.claude/memory-bank/system-patterns.md` - Architecture, data flows, connections
-6. `.claude/memory-bank/backport-tracker.md` - Client innovation tracking (MEAP only)
-7. `.claude/memory-bank/deployment-log.md` - Deployment history (MEAP only)
-8. `CLAUDE.md` - Project-specific gotchas
+1. `.claude/memory-bank/project-brief.md` - Mission, constraints, success criteria
+2. `.claude/memory-bank/active-context.md` - Recent handoffs, current work, open issues
+3. `.claude/memory-bank/tech-context.md` - Reference data, paths, commands
+4. `.claude/memory-bank/system-patterns.md` - Architecture, data flows, connections
+5. `.claude/memory-bank/backport-tracker.md` - Client innovation tracking (MEAP only)
+6. `.claude/memory-bank/deployment-log.md` - Deployment history (MEAP only)
+7. `CLAUDE.md` - Project-specific gotchas
 
 Files that don't exist will return errors - ignore them and use what's available.
 

@@ -16,8 +16,8 @@ Your context resets after this. Write a handoff that sets up the next Claude for
 | Constant | Value | Purpose |
 |----------|-------|---------|
 | MAX_GOTCHAS | 10 | Maximum gotchas to keep in CLAUDE.md |
-| HANDOFF_ARCHIVE_THRESHOLD | 7 | Archive handoffs when count exceeds this |
-| HANDOFFS_TO_KEEP | 3 | How many recent handoffs to preserve |
+| HANDOFF_ARCHIVE_THRESHOLD | 4 | Archive handoffs when count exceeds this |
+| HANDOFFS_TO_KEEP | 2 | How many recent handoffs to preserve |
 | FILE_SIZE_WARNING_LINES | 400 | Warn if Memory Bank file exceeds this |
 | CRUFT_AGE_DAYS | 30 | Age threshold for old feedback files |
 | PERIODIC_AUDIT_INTERVAL | 5 | Run audit every N sessions |
@@ -631,14 +631,14 @@ fi
 ```
 
 **Archive threshold:**
-- When 7+ handoffs exist, archive oldest to keep 3 most recent (applies to all project types)
+- When 4+ handoffs exist, archive oldest to keep 2 most recent (applies to all project types)
 
 **Archive process:**
 1. `mkdir -p .claude/memory-bank/archive`
 2. Identify the oldest handoffs (those furthest down in the file, after "Current Work Focus")
 3. Copy them to archive file in chronological order (oldest first)
 4. Remove them from active-context.md
-5. Keep only 3 most recent handoffs
+5. Keep only 2 most recent handoffs
 6. Preserve "Current Work Focus" and "Archived Handoffs" sections
 
 **Archive file naming:** `archive/handoffs-YYYY-MM-sessions-N-M.md` (N=first session, M=last session)
