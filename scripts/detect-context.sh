@@ -33,6 +33,6 @@ else
     esac
 fi
 
-# Session number from active-context.md
-SESSION_NUMBER=$(awk '/^session:/ {print $2; exit}' .claude/memory-bank/active-context.md 2>/dev/null)
+# Session number from active-context.md (tr -d '\r' handles CRLF line endings from Syncthing)
+SESSION_NUMBER=$(awk '/^session:/ {print $2; exit}' .claude/memory-bank/active-context.md 2>/dev/null | tr -d '\r')
 [[ "$SESSION_NUMBER" =~ ^[0-9]+$ ]] || SESSION_NUMBER=0
