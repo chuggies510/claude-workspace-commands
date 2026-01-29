@@ -200,6 +200,7 @@ Path: 1.1 → 1.2 → 2.1 → 2.3 → 3.2 → 4.1 → 5.1
 3. **Begin Implementation**: Run `/a-process-tasks [this-file]` to start systematic implementation
 4. **Track Progress**: Use task checkboxes to track completion
 5. **Session Management**: Commit after each phase completion (session breaks marked with 🔚)
+6. **After Completion**: Move PRD + tasks to `dev/completed/[feature-name]/`
 
 ---
 *Tasks Generated: [Date]*

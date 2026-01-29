@@ -184,15 +184,31 @@ Create comprehensive PRD with these sections:
 
 ### Step 4: File Management
 
-**Determine Save Location**:
-1. **Project Context**: If in a project, save to `tasks/prds/prd-[feature-name].md`
-2. **Standalone**: Save to `~/2_project-files/_shared/prds/prd-[feature-name].md`
-3. **Create directories if needed**
+**Determine Save Location** (unified dev/ structure):
+1. **Project Context**: If in a project with `dev/` folder, save to `dev/planning/prd-[feature-name].md`
+2. **Legacy Project**: If project has `tasks/prds/` but no `dev/`, use existing structure
+3. **Standalone**: Save to `~/2_project-files/_shared/dev/planning/prd-[feature-name].md`
+4. **Create directories if needed**
+
+```bash
+# Detect and create appropriate directory
+if [ -d "dev" ] || [ -f "CLAUDE.md" ]; then
+    mkdir -p dev/planning
+    echo "dev/planning/prd-[feature-name].md"
+elif [ -d "tasks/prds" ]; then
+    echo "tasks/prds/prd-[feature-name].md"  # Legacy support
+else
+    mkdir -p ~/2_project-files/_shared/dev/planning
+    echo "~/2_project-files/_shared/dev/planning/prd-[feature-name].md"
+fi
+```
 
 **File Naming Convention**:
 - Format: `prd-[feature-name-slug].md`
 - Example: `prd-user-authentication.md`
 - Slug: lowercase, hyphens for spaces, alphanumeric only
+
+**Lifecycle**: PRD stays in `dev/planning/` during active work. After feature completion, move PRD and tasks together to `dev/completed/[feature-name]/`.
 
 ### Step 5: Next Steps Guidance
 
@@ -201,21 +217,27 @@ After PRD creation, provide clear next steps:
 ```markdown
 ## ✅ PRD Created Successfully
 
-**File Location**: `[path-to-prd-file]`
+**File Location**: `dev/planning/prd-[feature-name].md`
 
 ### Next Steps:
 1. **Review PRD**: Review the generated PRD for completeness and accuracy
 2. **Stakeholder Review**: Share with stakeholders for feedback and approval
-3. **Generate Tasks**: Run `/a-generate-tasks [prd-file-path]` to break down into implementation tasks
-4. **Begin Implementation**: Use `/a-process-tasks [task-file-path]` for systematic implementation
+3. **Generate Tasks**: Run `/a-generate-tasks dev/planning/prd-[feature-name].md` to create task list
+4. **Begin Implementation**: Use `/a-process-tasks dev/planning/tasks-[feature-name].md` for systematic implementation
+5. **After Completion**: Move both PRD and tasks to `dev/completed/[feature-name]/`
 
 ### Commands:
 ```bash
 # Generate implementation tasks from this PRD
-/a-generate-tasks [prd-file-path]
+/a-generate-tasks dev/planning/prd-[feature-name].md
 
 # After task generation, begin implementation
-/a-process-tasks [task-file-path]
+/a-process-tasks dev/planning/tasks-[feature-name].md
+
+# After feature complete, archive to completed
+mkdir -p dev/completed/[feature-name]
+mv dev/planning/prd-[feature-name].md dev/completed/[feature-name]/
+mv dev/planning/tasks-[feature-name].md dev/completed/[feature-name]/
 ```
 
 **Tip**: The PRD can be edited directly before proceeding to task generation.
